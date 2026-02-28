@@ -81,7 +81,9 @@ class LlmAnalyzer:
                 # 提示模型返回 JSON 对象
                 response_format={"type": "json_object"},
                 temperature=0.1, # 保持输出的稳定性和一致性
-                max_tokens=800
+                max_tokens=800,
+                # 如果是 Groq 或部分不支持 json_object 严格模式的，这里可能会出问题，
+                # 但 Gemini 和多数大厂模型均支持。
             )
 
             # 解析返回的 JSON 字符串
@@ -111,11 +113,12 @@ class LlmAnalyzer:
             }
 
         except Exception as e:
-            print(f"LLM Analysis Error for issue {issue_data.get('key')}: {e}")
+            print(f"\nLLM Analysis Error for issue {issue_data.get('key')}: {e}")
+            # Instead of returning error json, returning a graceful fallback dict
             return {
                 "is_pm_attention_needed": False,
-                "issue_type": "分析失败",
-                "root_cause_summary": f"调用大模型发生错误: {str(e)}",
+                "issue_type": "分析失败/模型生成截断",
+                "root_cause_summary": f"分析失败，可能是模型输出不完整或遇到非法字符导致 JSON 截断。",
                 "product_improvement_suggestion": "无"
             }
 
