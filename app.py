@@ -40,10 +40,13 @@ with st.sidebar:
     jira_api_token = st.text_input("Jira Token 或密码", value=os.getenv("JIRA_API_TOKEN", ""), type="password", help="使用个人访问令牌 (PAT) 或密码")
 
     st.subheader("大模型配置")
-    llm_provider = st.selectbox("选择模型提供商", options=["Google Gemini", "Groq", "DeepSeek", "Ollama (本地)"], index=0)
+    llm_provider = st.selectbox("选择模型提供商", options=["OpenAI (ChatGPT)", "Google Gemini", "Groq", "DeepSeek", "Ollama (本地)"], index=0)
     
     # 动态显示模型选择和 API Key 输入框
-    if llm_provider == "Google Gemini":
+    if llm_provider == "OpenAI (ChatGPT)":
+        llm_model = st.selectbox("选择模型", ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-mini", "o1-preview"])
+        api_key = st.text_input("OpenAI API Key", value=os.getenv("OPENAI_API_KEY", ""), type="password", help="如果使用中转代理 API，可以在下方网络配置中覆盖 Base URL")
+    elif llm_provider == "Google Gemini":
         llm_model = st.selectbox("选择模型", ["gemini-2.5-flash", "gemini-3.1-pro-preview"])
         api_key = st.text_input("Gemini API Key", value=os.getenv("GEMINI_API_KEY", ""), type="password")
     elif llm_provider == "Groq":
@@ -69,8 +72,15 @@ with st.sidebar:
         "本地代理地址", 
         value=default_proxy, 
         placeholder="例如: http://127.0.0.1:7890", 
-        help="如果需要翻墙访问大模型 (如 Google Gemini 或 Github API)，请填入代理地址。"
+        help="如果需要翻墙访问大模型 (如 OpenAI, Gemini 或 Github API)，请填入代理地址。"
     )
+    custom_base_url = st.text_input(
+        "自定义 Base URL (代理 API 地址)", 
+        value=os.getenv("OPENAI_API_BASE", ""), 
+        placeholder="例如: https://api.openai-proxy.com/v1", 
+        help="如果你使用的是第三方中转 API (如国内聚合接口)，请在此填入 Base URL。"
+    )
+    
     if global_proxy:
         os.environ["HTTP_PROXY"] = global_proxy
         os.environ["HTTPS_PROXY"] = global_proxy
@@ -80,6 +90,13 @@ with st.sidebar:
         # 如果用户清空了输入框，则尝试移除环境变量，防止遗留影响
         for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
             os.environ.pop(k, None)
+            
+    if custom_base_url:
+        os.environ["OPENAI_API_BASE"] = custom_base_url
+        os.environ["GEMINI_API_BASE"] = custom_base_url
+    else:
+        os.environ.pop("OPENAI_API_BASE", None)
+        os.environ.pop("GEMINI_API_BASE", None)
         
     st.markdown("---")
     st.markdown("🔒 您的配置仅在本地运行，不会上传到任何外部服务器。")

@@ -131,7 +131,9 @@ class LlmAnalyzer:
 
     def _format_model_name(self, provider: str, raw_model_name: str) -> str:
         """为 litellm 格式化模型名称"""
-        if provider == "Google Gemini":
+        if provider == "OpenAI (ChatGPT)":
+            return f"openai/{raw_model_name}"
+        elif provider == "Google Gemini":
             return f"gemini/{raw_model_name}"
         elif provider == "Groq":
             return f"groq/{raw_model_name}"
@@ -144,7 +146,9 @@ class LlmAnalyzer:
 
     def _set_api_key_env(self, provider: str, api_key: str):
         """将前端传入的 API Key 临时设置为环境变量，供 litellm 读取"""
-        if provider == "Google Gemini":
+        if provider == "OpenAI (ChatGPT)":
+            os.environ["OPENAI_API_KEY"] = api_key
+        elif provider == "Google Gemini":
             os.environ["GEMINI_API_KEY"] = api_key
         elif provider == "Groq":
             os.environ["GROQ_API_KEY"] = api_key
