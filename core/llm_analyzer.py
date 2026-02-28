@@ -90,17 +90,25 @@ class LlmAnalyzer:
             # 清理可能存在的 markdown 代码块包裹 (以防模型不遵守 JSON 模式)
             result_str = result_str.strip()
             
+            # Print the raw string for debugging
+            print(f"--- Raw LLM Output for {issue_data.get('key')} ---")
+            print(result_str)
+            print("-----------------------------------")
+            
             # 找到第一个 { 和 最后一个 } 之间的内容
             start_idx = result_str.find('{')
             end_idx = result_str.rfind('}')
             
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 result_str = result_str[start_idx:end_idx+1]
-            
+            else:
+                # 极端情况：模型连 `{` 都没吐出来，或者吐了一堆废话
+                raise ValueError("模型返回的内容中找不到合法的 JSON `{}` 结构。")
+
             try:
                 parsed_result = json.loads(result_str)
             except json.JSONDecodeError as je:
-                print(f"JSON 解析失败! 原始模型返回内容为:\n{result_str}")
+                print(f"JSON 解析失败! 截取后的字符串为:\n{result_str}")
                 raise je
             
             # 简单的校验：确保包含我们需要的字段，如果不包含则使用默认值补充
