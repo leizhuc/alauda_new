@@ -2,15 +2,6 @@
 
 ## Backlog
 
-### Phase 1: 基础设施与 UI 框架搭建
-- [ ] 创建 `requirements.txt` (包含 streamlit, jira, litellm, pydantic, python-dotenv)。
-- [ ] 创建 `app.py` 作为 Streamlit 主入口。
-- [ ] 开发基础 UI 侧边栏：
-  - [ ] Jira 认证信息配置 (URL, Token/Password)。
-  - [ ] LLM 模型选择下拉框及 API Key 配置。
-  - [ ] 自定义 JQL 输入框 (支持用户输入特定的 Project 或 Component 条件)。
-- [ ] 确保敏感信息使用 `.env` 和 Streamlit secrets 机制安全管理。
-
 ### Phase 2: Jira 数据抓取模块 (`core/jira_client.py`)
 - [ ] 实现连接 Jira 实例的鉴权逻辑。
 - [ ] 实现接收前端传入的自定义 JQL 并执行查询的功能。
@@ -29,9 +20,16 @@
 - [ ] 实现本地历史记录缓存机制。
 
 ## In Progress
-- [ ] 确认最终架构设计与 TODO 清单。
+- [ ] 正在将核心逻辑接入 Streamlit 主应用。
 
 ## Done
+- [x] 创建 `requirements.txt` (包含 streamlit, jira, litellm, pydantic, python-dotenv)。
+- [x] 创建 `app.py` 作为 Streamlit 主入口。
+- [x] 开发基础 UI 侧边栏：
+  - [x] Jira 认证信息配置 (URL, Token/Password)。
+  - [x] LLM 模型选择下拉框及 API Key 配置。
+  - [x] 自定义 JQL 输入框 (支持用户输入特定的 Project 或 Component 条件)。
+- [x] 确保敏感信息使用 `.env` 和 Streamlit secrets 机制安全管理。
 - [x] Initialize Git Repository
 - [x] Setup Vibe Coding foundational files
 - [x] 确定项目核心方向为 Jira 工单智能分析 (方向一)
