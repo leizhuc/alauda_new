@@ -88,13 +88,13 @@ class LlmAnalyzer:
             result_str = response.choices[0].message.content or "{}"
             # 清理可能存在的 markdown 代码块包裹 (以防模型不遵守 JSON 模式)
             result_str = result_str.strip()
-            if result_str.startswith("```json"):
-                result_str = result_str[7:]
-            if result_str.startswith("```"):
-                result_str = result_str[3:]
-            if result_str.endswith("```"):
-                result_str = result_str[:-3]
-            result_str = result_str.strip()
+            
+            # 找到第一个 { 和 最后一个 } 之间的内容
+            start_idx = result_str.find('{')
+            end_idx = result_str.rfind('}')
+            
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                result_str = result_str[start_idx:end_idx+1]
             
             parsed_result = json.loads(result_str)
             
