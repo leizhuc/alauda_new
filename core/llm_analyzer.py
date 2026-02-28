@@ -71,19 +71,18 @@ class LlmAnalyzer:
         self._set_api_key_env(model_provider, api_key)
 
         try:
-            # 使用 litellm 发起调用，强制要求返回 JSON 格式
+            # 使用 litellm 发起调用
+            # 针对各种模型，去除强行要求 response_format={"type": "json_object"}
+            # 因为部分模型（如 Groq 和 DeepSeek 某些版本）或者通过代理转发时，
+            # 开启强制 json 模式容易导致请求中途截断、超时或流关闭。
             response = completion(
                 model=litellm_model,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                # 提示模型返回 JSON 对象
-                response_format={"type": "json_object"},
                 temperature=0.1, # 保持输出的稳定性和一致性
-                max_tokens=800,
-                # 如果是 Groq 或部分不支持 json_object 严格模式的，这里可能会出问题，
-                # 但 Gemini 和多数大厂模型均支持。
+                max_tokens=800
             )
 
             # 解析返回的 JSON 字符串
