@@ -71,19 +71,22 @@ class LlmAnalyzer:
         self._set_api_key_env(model_provider, api_key)
 
         try:
-            # 使用 litellm 发起调用
-            # 针对各种模型，去除强行要求 response_format={"type": "json_object"}
-            # 因为部分模型（如 Groq 和 DeepSeek 某些版本）或者通过代理转发时，
-            # 开启强制 json 模式容易导致请求中途截断、超时或流关闭。
-            response = completion(
-                model=litellm_model,
-                messages=[
+            # 针对智谱 AI, 使用它的 OpenAI 兼容接口地址
+            kwargs = {
+                "model": litellm_model,
+                "messages": [
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.1, # 保持输出的稳定性和一致性
-                max_tokens=800
-            )
+                "temperature": 0.1, # 保持输出的稳定性和一致性
+                "max_tokens": 800
+            }
+            
+            if model_provider == "Zhipu AI (智谱)":
+                kwargs["api_base"] = "https://open.bigmodel.cn/api/paas/v4/"
+                
+            # 使用 litellm 发起调用
+            response = completion(**kwargs)
 
             # 解析返回的 JSON 字符串
             result_str = response.choices[0].message.content or "{}"
@@ -134,7 +137,8 @@ class LlmAnalyzer:
         if provider == "OpenAI (ChatGPT)":
             return f"openai/{raw_model_name}"
         elif provider == "Zhipu AI (智谱)":
-            return f"zhipu/{raw_model_name}"
+            # 智谱提供完全兼容 OpenAI 的接口，使用 openai/ 前缀是最稳定的方式
+            return f"openai/{raw_model_name}"
         elif provider == "Google Gemini":
             return f"gemini/{raw_model_name}"
         elif provider == "Groq":
@@ -151,7 +155,7 @@ class LlmAnalyzer:
         if provider == "OpenAI (ChatGPT)":
             os.environ["OPENAI_API_KEY"] = api_key
         elif provider == "Zhipu AI (智谱)":
-            os.environ["ZHIPUAI_API_KEY"] = api_key
+            os.environ["OPENAI_API_KEY"] = api_key # 因为我们使用 openai/ 前缀调用智谱兼容接口
         elif provider == "Google Gemini":
             os.environ["GEMINI_API_KEY"] = api_key
         elif provider == "Groq":
