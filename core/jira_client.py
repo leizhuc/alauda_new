@@ -23,9 +23,18 @@ class JiraFetcher:
         try:
             # 兼容 Cloud 版的 basic_auth 和部分 Server 版的鉴权
             import os
+            import urllib.parse
             
-            # 临时禁用代理环境变量，防止影响 Jira 内网请求
-            os.environ['NO_PROXY'] = '*' 
+            # 解析 Jira 域名
+            parsed_url = urllib.parse.urlparse(self.server)
+            jira_host = parsed_url.hostname or "jira.alauda.cn"
+            
+            # 仅将 Jira 内网域名加入 NO_PROXY 免代理名单，防止影响外网大模型 API 的调用
+            original_no_proxy = os.environ.get('NO_PROXY', '')
+            if original_no_proxy and jira_host not in original_no_proxy:
+                os.environ['NO_PROXY'] = f"{original_no_proxy},{jira_host}"
+            elif not original_no_proxy:
+                os.environ['NO_PROXY'] = jira_host
             
             client = JIRA(
                 server=self.server,
