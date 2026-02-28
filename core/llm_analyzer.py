@@ -96,7 +96,11 @@ class LlmAnalyzer:
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 result_str = result_str[start_idx:end_idx+1]
             
-            parsed_result = json.loads(result_str)
+            try:
+                parsed_result = json.loads(result_str)
+            except json.JSONDecodeError as je:
+                print(f"JSON 解析失败! 原始模型返回内容为:\n{result_str}")
+                raise je
             
             # 简单的校验：确保包含我们需要的字段，如果不包含则使用默认值补充
             return {
