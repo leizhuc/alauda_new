@@ -2,6 +2,10 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
+# 引入我们刚才写好的两个核心模块
+from core.jira_client import JiraFetcher
+from core.llm_analyzer import LlmAnalyzer
+
 # Load environment variables from .env file (if present)
 load_dotenv()
 
@@ -12,6 +16,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# 初始化 Session State，用于存储抓取和分析的结果，避免页面刷新丢失数据
+if "jira_issues" not in st.session_state:
+    st.session_state.jira_issues = []
+if "analysis_results" not in st.session_state:
+    st.session_state.analysis_results = []
+if "is_analyzing" not in st.session_state:
+    st.session_state.is_analyzing = False
 
 # --- Sidebar Configuration ---
 with st.sidebar:
@@ -35,14 +47,17 @@ with st.sidebar:
     elif llm_provider == "DeepSeek":
         llm_model = st.selectbox("选择模型", ["deepseek-chat", "deepseek-reasoner"])
         api_key = st.text_input("DeepSeek API Key", value=os.getenv("DEEPSEEK_API_KEY", ""), type="password")
-    elif llm_provider == "Ollama (本地)":
+    else: # Ollama 
         llm_model = st.text_input("本地模型名称 (如 qwen2.5:7b)", value="qwen2.5:7b")
         api_key = "ollama" # Ollama generally doesn't require API key, but litellm might need a placeholder
         st.info("💡 请确保已在本地运行 Ollama 服务: `ollama run qwen2.5:7b`")
 
     st.subheader("查询配置 (JQL)")
-    default_jql = "project = 'YOUR_PROJECT' AND status changed to Resolved during (-24h, now())"
+    default_jql = "project = 'AIT' ORDER BY updated DESC" # 使用你刚才测试成功的简单查询
     jql_query = st.text_area("自定义 JQL", value=default_jql, height=100, help="定义要拉取哪些已完成的工单进行分析")
+    
+    # 获取拉取数量上限
+    max_results = st.number_input("单次拉取最大工单数", min_value=1, max_value=50, value=5)
 
     st.markdown("---")
     st.markdown("🔒 您的配置仅在本地运行，不会上传到任何外部服务器。")
@@ -53,45 +68,108 @@ st.markdown("### 帮助产品经理从繁杂的工单中提炼高价值的产品
 
 st.markdown("---")
 
+# 计算当前统计数据
+total_analyzed = len(st.session_state.analysis_results)
+need_attention = sum(1 for res in st.session_state.analysis_results if res.get('is_pm_attention_needed', False))
+
 # 预留用于展示状态和结果的区域
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric(label="今日需关注工单", value="--")
+    st.metric(label="高优改进建议 (需PM关注)", value=f"{need_attention} 项")
 with col2:
-    st.metric(label="总分析工单数", value="--")
+    st.metric(label="已分析工单数", value=f"{total_analyzed} 条")
 with col3:
     st.metric(label="当前使用模型", value=llm_model)
 
 st.markdown("---")
 
 # 分析触发按钮
-if st.button("🚀 开始分析今日工单", use_container_width=True, type="primary"):
+if st.button("🚀 开始拉取工单并分析", use_container_width=True, type="primary", disabled=st.session_state.is_analyzing):
     if not jira_server or not jira_username or not jira_api_token:
         st.error("❌ 请先在侧边栏完善 Jira 认证信息！")
     elif llm_provider != "Ollama (本地)" and not api_key:
         st.error(f"❌ 请在侧边栏配置 {llm_provider} 的 API Key！")
     else:
-        with st.spinner("🔄 正在连接 Jira 拉取工单数据..."):
-            # 这里后续会调用 core/jira_client.py 
-            st.info(f"Mock: 执行 JQL -> `{jql_query}`")
-            st.success("成功连接 Jira 并拉取到 15 条已解决工单 (演示数据)。")
+        st.session_state.is_analyzing = True
+        
+        try:
+            # 1. 抓取 Jira 数据
+            with st.spinner(f"🔄 正在连接 {jira_server} 拉取数据..."):
+                fetcher = JiraFetcher(jira_server, jira_username, jira_api_token)
+                issues = fetcher.fetch_resolved_issues(jql_query, max_results=max_results)
+                
+                if not issues:
+                    st.warning("⚠️ 没有找到符合该 JQL 条件的工单数据，请尝试修改查询语句。")
+                    st.session_state.is_analyzing = False
+                    st.stop()
+                    
+                st.session_state.jira_issues = issues
+                st.success(f"成功获取到 {len(issues)} 条工单数据！")
             
-        with st.spinner(f"🧠 {llm_model} 正在深度分析工单评论..."):
-            # 这里后续会调用 core/llm_analyzer.py
-            import time
-            time.sleep(2) # 模拟 AI 处理时间
-            st.success("✅ AI 分析完成！")
+            # 2. 调用 LLM 分析
+            st.session_state.analysis_results = []
+            analyzer = LlmAnalyzer()
             
-        # 预留结果展示表格
-        st.subheader("🔥 需要产品经理关注的改进点")
-        st.markdown(
-            """
-            * **[PROJ-102] 容器网络配置导致偶发断流** 
-              * **AI 根因分析:** 用户在使用自定义 CNI 插件时，文档说明不清晰，导致配置遗漏。
-              * **💡 产品建议:** 在网络配置 UI 增加对于自定义 CNI 的强提示，并在文档中补充具体示例。
-            * **[PROJ-145] 存储卷扩容操作失败**
-              * **AI 根因分析:** 底层存储类 (StorageClass) 不支持在线扩容，但界面上未禁用该按钮，导致用户误操作。
-              * **💡 产品建议:** 前端调用 API 校验 StorageClass 的 `allowVolumeExpansion` 属性，如果不为 true，直接将扩容按钮置灰并提示原因。
-            """
-        )
+            # 使用进度条显示分析进度
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for idx, issue in enumerate(issues):
+                status_text.text(f"🧠 {llm_model} 正在分析工单 {issue['key']} ({idx+1}/{len(issues)})...")
+                
+                result = analyzer.analyze_issue(
+                    issue_data=issue,
+                    model_provider=llm_provider,
+                    model_name=llm_model,
+                    api_key=api_key
+                )
+                
+                # 将原始工单信息合并进结果中方便展示
+                result['issue_key'] = issue['key']
+                result['issue_url'] = issue['url']
+                result['issue_summary'] = issue['summary']
+                
+                st.session_state.analysis_results.append(result)
+                
+                # 更新进度条
+                progress = (idx + 1) / len(issues)
+                progress_bar.progress(progress)
+                
+            status_text.text("✅ AI 分析全部完成！")
+            
+        except Exception as e:
+            st.error(f"🚨 分析过程中发生错误: {e}")
+            
+        finally:
+            st.session_state.is_analyzing = False
+            st.rerun() # 重新渲染页面以显示结果
+
+# --- 展示分析结果 ---
+if st.session_state.analysis_results:
+    st.subheader("🔥 产品优化洞察看板")
+    
+    # 将需要关注的和不需要关注的拆分展示
+    attention_issues = [res for res in st.session_state.analysis_results if res.get('is_pm_attention_needed', False)]
+    other_issues = [res for res in st.session_state.analysis_results if not res.get('is_pm_attention_needed', False)]
+    
+    tab1, tab2 = st.tabs([f"🚨 需改进建议 ({len(attention_issues)})", f"✅ 常规工单 ({len(other_issues)})"])
+    
+    with tab1:
+        if not attention_issues:
+            st.info("太棒了，本次分析的工单中没有发现明显的共性产品问题或设计缺陷。🎉")
+        else:
+            for item in attention_issues:
+                with st.expander(f"[{item['issue_key']}] {item['issue_summary']} - 标签: {item['issue_type']}", expanded=True):
+                    st.markdown(f"**🔗 Jira 链接:** [{item['issue_key']}]({item['issue_url']})")
+                    st.markdown(f"**🔍 根因分析:** {item['root_cause_summary']}")
+                    st.markdown(f"**💡 产品建议:** `{item['product_improvement_suggestion']}`")
+                    
+    with tab2:
+        if not other_issues:
+            st.info("所有工单均被标记为需要产品关注。")
+        else:
+            for item in other_issues:
+                with st.expander(f"[{item['issue_key']}] {item['issue_summary']}"):
+                    st.markdown(f"**🔍 根因概括:** {item['root_cause_summary']}")
+                    st.markdown("*AI 判定结论: 偏向常规研发/运维操作，暂无需特殊跟进。*")
 

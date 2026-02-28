@@ -22,11 +22,21 @@ class JiraFetcher:
         """建立 Jira 连接并返回客户端实例"""
         try:
             # 兼容 Cloud 版的 basic_auth 和部分 Server 版的鉴权
+            import os
+            
+            # 临时禁用代理环境变量，防止影响 Jira 内网请求
+            os.environ['NO_PROXY'] = '*' 
+            
             client = JIRA(
                 server=self.server,
                 basic_auth=(self.username, self.api_token),
                 # 某些内网环境可能需要关闭 SSL 验证，但为了安全默认开启
-                options={'verify': True}
+                options={'verify': True},
+                proxies={
+                    "http": None,
+                    "https": None,
+                },
+                timeout=10 # 添加强制超时 10 秒
             )
             return client
         except JIRAError as e:
@@ -61,7 +71,7 @@ class JiraFetcher:
             raise ValueError(f"JQL Error: {e.text}")
 
         extracted_data = []
-        for issue in issues:
+        for issue in issues: # type: ignore
             issue_dict = {
                 "key": issue.key,
                 "url": f"{self.server}/browse/{issue.key}",
@@ -126,10 +136,13 @@ if __name__ == "__main__":
         fetcher = JiraFetcher(SERVER, USER, TOKEN)
         
         # 使用一个极简的测试 JQL (请根据实际情况替换 YOUR_PROJECT)
-        test_jql = "project = 'TEST' AND status changed to Resolved during (-24h, now())"
+        test_jql = "project = 'AIT' ORDER BY updated DESC"
         print(f"Executing JQL: {test_jql}")
         try:
             results = fetcher.fetch_resolved_issues(test_jql, max_results=2)
+            if not results:
+                print(f"⚠️ 警告: JQL 执行成功，但在您的 Jira 中没有找到符合条件的工单。")
+                print(f"👉 请尝试将 'TEST' 替换为您真实的 Project Key (例如: project='PROJ')")
             for res in results:
                 print(f"Key: {res['key']}")
                 print(f"Summary: {res['summary']}")
