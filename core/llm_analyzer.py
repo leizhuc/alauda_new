@@ -61,7 +61,13 @@ class LlmAnalyzer:
         【排查过程与解决评论 (核心)】: 
         {issue_data.get('comments', '无评论')}
         
-        请按照预设的 JSON 格式输出分析结果。
+        请结合上述信息进行分析，并【必须且只能】返回一个合法的 JSON 对象，不要输出任何 markdown 标记 (如 ```json) 或其他解释性文字。JSON 结构必须严格如下：
+        {{
+            "is_pm_attention_needed": true或false (布尔值),
+            "issue_type": "问题分类标签，例如：UX设计缺陷, 文档缺失, 新需求, 偶发Bug, 配置错误, 第三方依赖故障等",
+            "root_cause_summary": "用一句话总结导致这个工单的根本原因",
+            "product_improvement_suggestion": "如果需要PM关注，提出具体的产品改进建议；如果不需要关注，填 '无'"
+        }}
         """
 
         # 根据提供商适配 litellm 需要的模型名称前缀
@@ -89,8 +95,12 @@ class LlmAnalyzer:
             response = completion(**kwargs)
 
             # 解析返回的 JSON 字符串
-            result_str = response.choices[0].message.content or "{}"
-            # 清理可能存在的 markdown 代码块包裹 (以防模型不遵守 JSON 模式)
+            result_str = response.choices[0].message.content
+            
+            if not result_str:
+                print(f"⚠️ 大模型返回了空内容！完整返回体为: {response}")
+                result_str = "{}"
+                
             result_str = result_str.strip()
             
             # Print the raw string for debugging
