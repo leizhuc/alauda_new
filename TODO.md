@@ -3,10 +3,10 @@
 ## Backlog
 
 ### Phase 2: Jira 数据抓取模块 (`core/jira_client.py`)
-- [ ] 实现连接 Jira 实例的鉴权逻辑。
-- [ ] 实现接收前端传入的自定义 JQL 并执行查询的功能。
-- [ ] 解析工单数据，提取核心字段 (Summary, Description, Comments)。
-- [ ] 编写数据清洗逻辑，过滤系统自动生成的无用评论。
+- [x] 实现连接 Jira 实例的鉴权逻辑。
+- [x] 实现接收前端传入的自定义 JQL 并执行查询的功能。
+- [x] 解析工单数据，提取核心字段 (Summary, Description, Comments)。
+- [x] 编写数据清洗逻辑，过滤系统自动生成的无用评论。
 
 ### Phase 3: AI 分析模块 (`core/llm_analyzer.py`)
 - [ ] 设计核心 Prompt (赋予架构师/PM 视角，判断分类、提取根本原因及产品建议)。
