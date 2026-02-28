@@ -1,0 +1,8 @@
+# AI Assistant Rules (Vibe Coding)
+
+- **Context First**: Always review `TODO.md` and recent commits to understand the current project state before executing tasks.
+- **Task Tracking**: Update `TODO.md` when moving tasks between Backlog, In Progress, and Done.
+- **Proactive Verification**: Write unit tests alongside implementation. Do not wait for the user to ask for tests.
+- **Concise Communication**: Keep explanations short. Focus on code generation and tool usage.
+- **Absolute Paths**: Always use absolute paths when reading or writing files.
+- **Vibe Check**: If instructions are open-ended, propose a quick architectural or design plan before bulk implementation.
