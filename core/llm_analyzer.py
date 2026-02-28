@@ -85,7 +85,10 @@ class LlmAnalyzer:
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.1, # 保持输出的稳定性和一致性
-                "max_tokens": 800
+                # 将 max_tokens 从 800 提升到 2000
+                # 因为很多国产模型 (如 glm-4.7) 具有 "思考 (reasoning)" 过程
+                # 思考过程会消耗大量隐藏 token，800 很容易被直接截断导致返回空内容。
+                "max_tokens": 2000 
             }
             
             if model_provider == "Zhipu AI (智谱)":
