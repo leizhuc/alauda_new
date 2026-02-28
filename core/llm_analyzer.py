@@ -133,6 +133,8 @@ class LlmAnalyzer:
         """为 litellm 格式化模型名称"""
         if provider == "OpenAI (ChatGPT)":
             return f"openai/{raw_model_name}"
+        elif provider == "Zhipu AI (智谱)":
+            return f"zhipu/{raw_model_name}"
         elif provider == "Google Gemini":
             return f"gemini/{raw_model_name}"
         elif provider == "Groq":
@@ -148,6 +150,8 @@ class LlmAnalyzer:
         """将前端传入的 API Key 临时设置为环境变量，供 litellm 读取"""
         if provider == "OpenAI (ChatGPT)":
             os.environ["OPENAI_API_KEY"] = api_key
+        elif provider == "Zhipu AI (智谱)":
+            os.environ["ZHIPUAI_API_KEY"] = api_key
         elif provider == "Google Gemini":
             os.environ["GEMINI_API_KEY"] = api_key
         elif provider == "Groq":

@@ -40,12 +40,15 @@ with st.sidebar:
     jira_api_token = st.text_input("Jira Token 或密码", value=os.getenv("JIRA_API_TOKEN", ""), type="password", help="使用个人访问令牌 (PAT) 或密码")
 
     st.subheader("大模型配置")
-    llm_provider = st.selectbox("选择模型提供商", options=["OpenAI (ChatGPT)", "Google Gemini", "Groq", "DeepSeek", "Ollama (本地)"], index=0)
+    llm_provider = st.selectbox("选择模型提供商", options=["OpenAI (ChatGPT)", "Zhipu AI (智谱)", "Google Gemini", "Groq", "DeepSeek", "Ollama (本地)"], index=0)
     
     # 动态显示模型选择和 API Key 输入框
     if llm_provider == "OpenAI (ChatGPT)":
         llm_model = st.selectbox("选择模型", ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-mini", "o1-preview"])
         api_key = st.text_input("OpenAI API Key", value=os.getenv("OPENAI_API_KEY", ""), type="password", help="如果使用中转代理 API，可以在下方网络配置中覆盖 Base URL")
+    elif llm_provider == "Zhipu AI (智谱)":
+        llm_model = st.selectbox("选择模型", ["glm-4.7", "glm-4-plus", "glm-4-flash", "glm-4", "glm-4-air"])
+        api_key = st.text_input("智谱 API Key", value=os.getenv("ZHIPUAI_API_KEY", ""), type="password")
     elif llm_provider == "Google Gemini":
         llm_model = st.selectbox("选择模型", ["gemini-2.5-flash", "gemini-3.1-pro-preview"])
         api_key = st.text_input("Gemini API Key", value=os.getenv("GEMINI_API_KEY", ""), type="password")
