@@ -2,7 +2,7 @@
 
 **Jira Insight Bot** 是一个基于大模型驱动的敏捷研发辅助工具，专为产品经理（PM）和系统架构师设计。它能够自动抓取 Jira 中每天流转、解决的工单，并利用 AI 的深度阅读理解能力，从海量的研发讨论、报错日志和排查评论中，**自动提炼出对产品迭代有高价值的改进建议**。
 
-👉 **项目 Git 地址**: [https://github.com/your-org/jira-insight-bot](https://github.com/your-org/jira-insight-bot) *(请替换为您的实际远程仓库地址)*
+👉 **项目 Git 地址**: [https://github.com/leizhuc/alauda_new/tree/main]
 
 ---
 
