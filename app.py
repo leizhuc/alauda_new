@@ -6,8 +6,13 @@ from dotenv import load_dotenv
 from core.jira_client import JiraFetcher
 from core.llm_analyzer import LlmAnalyzer
 
-# Load environment variables from .env file (if present)
+# 加载环境变量
 load_dotenv()
+
+# 初始化环境变量，尝试读取系统代理 (Mac默认的全局代理设置有时Python能捕捉到)
+import urllib.request
+sys_proxies = urllib.request.getproxies()
+default_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy") or sys_proxies.get("https", "")
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -59,6 +64,23 @@ with st.sidebar:
     # 获取拉取数量上限
     max_results = st.number_input("单次拉取最大工单数", min_value=1, max_value=50, value=5)
 
+    st.subheader("网络配置 (可选)")
+    global_proxy = st.text_input(
+        "本地代理地址", 
+        value=default_proxy, 
+        placeholder="例如: http://127.0.0.1:7890", 
+        help="如果需要翻墙访问大模型 (如 Google Gemini 或 Github API)，请填入代理地址。"
+    )
+    if global_proxy:
+        os.environ["HTTP_PROXY"] = global_proxy
+        os.environ["HTTPS_PROXY"] = global_proxy
+        os.environ["http_proxy"] = global_proxy
+        os.environ["https_proxy"] = global_proxy
+    else:
+        # 如果用户清空了输入框，则尝试移除环境变量，防止遗留影响
+        for k in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+            os.environ.pop(k, None)
+        
     st.markdown("---")
     st.markdown("🔒 您的配置仅在本地运行，不会上传到任何外部服务器。")
 
